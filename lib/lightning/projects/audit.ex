@@ -26,7 +26,7 @@ defmodule Lightning.Projects.Audit do
 
   defp event_changeset(field, %{data: %{id: project_id}} = changeset, user) do
     "#{field}_updated"
-    |> event(project_id, user.id, filter_changes(changeset, field))
+    |> event(project_id, user, filter_changes(changeset, field))
   end
 
   defp maybe_extend_multi(:no_changes, multi, _op_name), do: multi
