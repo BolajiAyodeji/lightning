@@ -115,7 +115,10 @@ defmodule Lightning.Auditing.Audit do
     field :item_id, Ecto.UUID
     embeds_one :changes, Changes
     field :actor_id, Ecto.UUID
-    field :actor_type, :string
+
+    field :actor_type, Ecto.Enum,
+      values: [:project_repo_connection, :trigger, :user]
+
     field :actor, :map, virtual: true
 
     timestamps(updated_at: false)
@@ -249,7 +252,10 @@ defmodule Lightning.Auditing.Audit do
 
   defp extract_actor_type(struct_name) do
     struct_name
-    |> Atom.to_string()
-    |> String.replace_prefix("Elixir.", "")
+    |> case do
+      Lightning.VersionControl.ProjectRepoConnection -> :project_repo_connection
+      Lightning.Workflows.Trigger -> :trigger
+      Lightning.Accounts.User -> :user
+    end
   end
 end

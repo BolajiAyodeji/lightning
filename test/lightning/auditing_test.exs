@@ -60,7 +60,7 @@ defmodule Lightning.AuditingTest do
                  event: "updated",
                  item_id: ^item_id,
                  actor_id: ^actor_id,
-                 actor_type: "Lightning.VersionControl.ProjectRepoConnection"
+                 actor_type: :project_repo_connection
                },
                valid?: true
              } = audit_changeset
@@ -70,7 +70,7 @@ defmodule Lightning.AuditingTest do
       assert Ecto.Changeset.get_change(changes, :after) == %{name: "test two"}
     end
 
-    test "returns a changeset when he changes are a map", %{
+    test "returns a changeset when the changes are a map", %{
       actor: %{id: actor_id} = actor
     } do
       item_id = Ecto.UUID.generate()
@@ -92,7 +92,7 @@ defmodule Lightning.AuditingTest do
                  event: "updated",
                  item_id: ^item_id,
                  actor_id: ^actor_id,
-                 actor_type: "Lightning.VersionControl.ProjectRepoConnection"
+                 actor_type: :project_repo_connection
                },
                valid?: true
              } = audit_changeset
@@ -100,6 +100,38 @@ defmodule Lightning.AuditingTest do
       changes = Ecto.Changeset.get_embed(audit_changeset, :changes)
       assert Ecto.Changeset.get_change(changes, :before) == %{foo: "bar"}
       assert Ecto.Changeset.get_change(changes, :after) == %{foo: "baz"}
+    end
+
+    test "maps actor structs to actor types" do
+      item_id = Ecto.UUID.generate()
+      changes = %{before: %{foo: "bar"}, after: %{foo: "baz"}}
+
+      assert %{changes: %{actor_type: :user}} =
+               Audit.event(
+                 "credential",
+                 "updated",
+                 item_id,
+                 insert(:user),
+                 changes
+               )
+
+      assert %{changes: %{actor_type: :project_repo_connection}} =
+               Audit.event(
+                 "credential",
+                 "updated",
+                 item_id,
+                 insert(:project_repo_connection),
+                 changes
+               )
+
+      assert %{changes: %{actor_type: :trigger}} =
+               Audit.event(
+                 "credential",
+                 "updated",
+                 item_id,
+                 insert(:trigger),
+                 changes
+               )
     end
 
     test "'created' event sets before changes to nil", %{actor: actor} do
@@ -170,7 +202,7 @@ defmodule Lightning.AuditingTest do
         event: "updated",
         item_id: item_id,
         actor_id: actor_id,
-        actor_type: "Lightning.VersionControl.ProjectRepoConnection",
+        actor_type: :project_repo_connection,
         changes: %{
           before: %{name: "test"},
           after: %{name: "test two"}
@@ -197,7 +229,7 @@ defmodule Lightning.AuditingTest do
                  event: "updated",
                  item_id: ^item_id,
                  actor_id: ^actor_id,
-                 actor_type: "Lightning.VersionControl.ProjectRepoConnection",
+                 actor_type: :project_repo_connection,
                  changes: changes
                },
                valid?: true
