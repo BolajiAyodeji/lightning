@@ -27,7 +27,7 @@ defmodule Lightning.Credentials.OauthClientAuditTest do
                  item_type: "oauth_client",
                  item_id: ^client_id,
                  actor_id: ^user_id,
-                 actor_type: "Lightning.Accounts.User",
+                 actor_type: :user,
                  changes: %{
                    changes: %{
                      before: %{
@@ -65,7 +65,7 @@ defmodule Lightning.Credentials.OauthClientAuditTest do
                  item_type: "oauth_client",
                  item_id: ^client_id,
                  actor_id: ^user_id,
-                 actor_type: "Lightning.Accounts.User",
+                 actor_type: :user,
                  changes: %{
                    changes: %{
                      before: %{
@@ -96,7 +96,7 @@ defmodule Lightning.Credentials.OauthClientAuditTest do
                  item_type: "oauth_client",
                  item_id: ^client_id,
                  actor_id: ^user_id,
-                 actor_type: "Lightning.Accounts.User",
+                 actor_type: :user,
                  changes: %{
                    changes: %{}
                  }
