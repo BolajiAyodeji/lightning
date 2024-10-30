@@ -22,7 +22,7 @@ defmodule Lightning.Credentials.AuditTest do
       assert %{before: nil, after: nil} = audit.changes
       assert audit.event == "created"
       assert audit.actor_id == user.id
-      assert audit.actor_type == "Lightning.Accounts.User"
+      assert audit.actor_type == :user
     end
 
     test "generates 'updated' audit trail entries" do
@@ -50,7 +50,7 @@ defmodule Lightning.Credentials.AuditTest do
 
       assert audit.event == "updated"
       assert audit.actor_id == user.id
-      assert audit.actor_type == "Lightning.Accounts.User"
+      assert audit.actor_type == :user
     end
 
     test "generates 'deleted' audit trail entries" do
@@ -73,7 +73,7 @@ defmodule Lightning.Credentials.AuditTest do
 
       assert audit.event == "deleted"
       assert audit.actor_id == user.id
-      assert audit.actor_type == "Lightning.Accounts.User"
+      assert audit.actor_type == :user
     end
   end
 
@@ -97,7 +97,7 @@ defmodule Lightning.Credentials.AuditTest do
                  item_id: ^credential_id,
                  item_type: "credential",
                  actor_id: ^user_id,
-                 actor_type: "Lightning.Accounts.User",
+                 actor_type: :user,
                  changes: changes
                }
              } = audit_changeset
@@ -130,7 +130,7 @@ defmodule Lightning.Credentials.AuditTest do
                  item_id: ^credential_id,
                  item_type: "credential",
                  actor_id: ^user_id,
-                 actor_type: "Lightning.Accounts.User",
+                 actor_type: :user,
                  changes: changes
                }
              } = audit_changeset
@@ -159,7 +159,7 @@ defmodule Lightning.Credentials.AuditTest do
                  item_id: ^credential_id,
                  item_type: "credential",
                  actor_id: ^user_id,
-                 actor_type: "Lightning.Accounts.User",
+                 actor_type: :user,
                  changes: %{
                    changes: %{}
                  }

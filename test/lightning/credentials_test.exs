@@ -568,7 +568,7 @@ defmodule Lightning.CredentialsTest do
                item_id: ^credential_id,
                item_type: "credential",
                actor_id: ^user_id,
-               actor_type: "Lightning.Accounts.User",
+               actor_type: :user,
                changes: %{
                  before: %{},
                  after: nil
@@ -583,7 +583,7 @@ defmodule Lightning.CredentialsTest do
                item_id: ^credential_id,
                item_type: "credential",
                actor_id: ^user_id,
-               actor_type: "Lightning.Accounts.User",
+               actor_type: :user,
                changes: %{
                  before: %{"project_id" => ^project_id},
                  after: %{"project_id" => nil}
