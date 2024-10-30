@@ -1404,6 +1404,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
 
   def handle_event("save", params, socket) do
     %{
+      current_user: _current_user,
       project: project,
       workflow_params: initial_params,
       can_edit_workflow: can_edit_workflow,
@@ -1548,6 +1549,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
         %{"run_id" => run_id, "step_id" => step_id},
         socket
       ) do
+        IO.puts("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
     case rerun(socket, run_id, step_id) do
       {:ok, socket} ->
         {:noreply, socket}

@@ -9,6 +9,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
   import Lightning.WorkflowsFixtures
   import Phoenix.LiveViewTest
 
+  alias Lightning.Auditing.Audit
   alias Lightning.Helpers
   alias Lightning.Repo
   alias Lightning.Workflows
@@ -224,12 +225,66 @@ defmodule LightningWeb.WorkflowLive.EditTest do
         ~p"/projects/#{project.id}/w/#{workflow_id}?#{[m: "expand", s: job.id, v: workflow.lock_version]}"
       )
 
-      render(view) =~ "Workflow saved"
+      assert render(view) =~ "Workflow saved"
 
       # workflow updated event is emitted
       assert_received %Lightning.Workflows.Events.WorkflowUpdated{
         workflow: %{id: ^workflow_id}
       }
+    end
+
+    @tag role: :editor
+    test "auditing snapshot creation", %{
+      conn: conn, project: project, user: %{id: user_id}
+    } do
+      {:ok, view, _html} =
+        live(conn, ~p"/projects/#{project.id}/w/new?m=settings")
+
+      assert view |> push_patches_to_view(initial_workflow_patchset(project))
+
+      workflow_name = "My Workflow"
+      view |> fill_workflow_name(workflow_name)
+
+      {job, _, _} = view |> select_first_job()
+
+      view |> fill_job_fields(job, %{name: "My Job"})
+
+      view |> CredentialLiveHelpers.select_credential_type("dhis2")
+
+      view |> CredentialLiveHelpers.click_continue()
+
+      # Creating a new credential from the Job panel
+      view
+      |> CredentialLiveHelpers.fill_credential(%{
+        name: "My Credential",
+        body: %{username: "foo", password: "bar", hostUrl: "http://someurl"}
+      })
+
+      view |> CredentialLiveHelpers.click_save()
+
+      # Editing the Jobs' body
+      view |> click_edit(job)
+
+      view |> change_editor_text("some body")
+
+      click_save(view)
+
+      assert %{id: workflow_id} =
+               Lightning.Repo.one(
+                 from w in Workflow,
+                   where:
+                     w.project_id == ^project.id and w.name == ^workflow_name
+               )
+
+      audit_query = from a in Audit, where: a.event == "snapshot_created"
+
+      audit_event = Lightning.Repo.one(audit_query)
+
+      assert %{
+        actor_id: ^user_id,
+        item_id: ^workflow_id,
+        item_type: "workflow"
+      } = audit_event
     end
 
     @tag role: :viewer
@@ -412,6 +467,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
           ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: snapshot.lock_version]}"
         )
 
+      # RORY COPY FROM HERE
       assert view
              |> has_element?(
                "[id='canvas-workflow-version'][aria-label='You are viewing a snapshot of this workflow that was taken on #{Helpers.format_date(snapshot.inserted_at)}']",
@@ -534,6 +590,140 @@ defmodule LightningWeb.WorkflowLive.EditTest do
              |> has_element?()
 
       assert view |> element("[type='submit']", "Save") |> has_element?()
+    end
+
+    test "Creating an audit event on rerun", %{
+      conn: conn,
+      project: project,
+      user: %{id: user_id},
+      workflow: %{id: workflow_id} = workflow
+    } do
+      {:ok, view, _html} =
+        live(
+          conn,
+          ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: workflow.lock_version]}"
+        )
+
+      {:ok, snapshot} = Snapshot.get_or_create_latest_for(workflow)
+
+      view |> fill_workflow_name("#{workflow.name} v2")
+
+      workflow.jobs
+      |> Enum.with_index()
+      |> Enum.each(fn {job, idx} ->
+        view |> select_node(job, workflow.lock_version)
+
+        refute view
+               |> has_element?("[id='workflow_jobs_#{idx}_name'][disabled]")
+
+        refute view |> has_element?("[id='adaptor-name'][disabled]")
+        refute view |> has_element?("[id='adaptor-version'][disabled]")
+
+        refute view
+               |> has_element?(
+                 "[id='workflow_jobs_#{idx}_project_credential_id'][disabled]"
+               )
+
+        view |> click_edit(job)
+
+        assert view
+               |> has_element?(
+                 "[id='inspector-workflow-version'][aria-label='This is the latest version of this workflow']",
+                 "latest"
+               )
+
+        refute view
+               |> has_element?("[id='manual_run_form_dataclip_id'][disabled]")
+
+        refute view
+               |> has_element?(
+                 "[id='job-editor-#{job.id}'][data-disabled='true']"
+               )
+
+        refute view
+               |> has_element?("[id='version-switcher-inspector-#{job.id}]")
+
+        refute view
+               |> has_element?(
+                 "[type='submit'][form='workflow-form'][disabled]",
+                 "Save"
+               )
+      end)
+
+      workflow.edges
+      |> Enum.with_index()
+      |> Enum.each(fn {edge, idx} ->
+        view |> select_node(edge, workflow.lock_version)
+
+        refute view
+               |> has_element?(
+                 "[id='workflow_edges_#{idx}_condition_type'][disabled]"
+               )
+      end)
+
+      workflow.triggers
+      |> Enum.with_index()
+      |> Enum.each(fn {trigger, idx} ->
+        view |> select_node(trigger, workflow.lock_version)
+
+        refute view
+               |> has_element?("[id='triggerType'][disabled]")
+
+        refute view
+               |> has_element?(
+                 "[id='workflow_triggers_#{idx}_enabled'][disabled]"
+               )
+      end)
+
+      job_1 = List.first(workflow.jobs)
+
+      view |> select_node(job_1, workflow.lock_version)
+
+      view
+      |> form("#workflow-form", %{
+        "workflow" => %{
+          "jobs" => %{
+            "0" => %{
+              "name" => "#{job_1.name} v2"
+            }
+          }
+        }
+      })
+      |> render_change()
+
+      view
+      |> form("#workflow-form")
+      |> render_submit()
+
+      audit_query = from a in Audit, where: a.event == "snapshot_created"
+
+      audit_event = Lightning.Repo.one(audit_query)
+
+      workflow = Repo.reload!(workflow)
+
+      assert snapshot.lock_version < workflow.lock_version
+
+      _version = String.slice(snapshot.id, 0..6)
+
+      view
+      |> element(
+        "a[href='/projects/#{project.id}/w'][data-phx-link='redirect']",
+        "Workflows"
+      )
+      |> render_click()
+
+      {:ok, _view, _html} =
+        live(
+          conn,
+          ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: snapshot.lock_version]}"
+        )
+
+      # RORY COPY TO HERE
+      assert %{
+        actor_id: ^user_id,
+        item_id: ^workflow_id,
+        item_type: "workflow"
+      } = audit_event
     end
 
     test "Inspector renders run thru their snapshots and allows switching to the latest versions for editing",
