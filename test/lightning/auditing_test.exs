@@ -21,7 +21,7 @@ defmodule Lightning.AuditingTest do
       }
     end
 
-    test "returns a reverse-chronological list of audit entries", %{
+    test "returns a paginated reverse-chronological list of audit entries", %{
       user_event_3: user_event_3,
       user_event_4: user_event_4
     } do
@@ -64,7 +64,7 @@ defmodule Lightning.AuditingTest do
     end
 
     defp insert_events_for_struct(%User{id: id}, now) do
-      insert_events(id, "Lightning.Accounts.User", now, 0)
+      insert_events(id, :user, now, 0)
     end
 
     defp insert_events(actor_id, actor_type, now, struct_offset) do
