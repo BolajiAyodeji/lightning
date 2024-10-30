@@ -3,7 +3,7 @@ defmodule Lightning.Repo.Migrations.AddActorTypeToAuditEvents do
 
   def change do
     alter table(:audit_events) do
-      add :actor_type, :string, null: false, default: "Lightning.Accounts.User"
+      add :actor_type, :string, null: false, default: "user"
     end
   end
 end
