@@ -1433,7 +1433,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
       %{assigns: %{changeset: changeset}} =
         socket = socket |> apply_params(next_params, :workflow)
 
-      case Helpers.save_workflow(changeset) do
+      case Helpers.save_workflow(changeset, nil) do
         {:ok, workflow} ->
           snapshot = snapshot_by_version(workflow.id, workflow.lock_version)
 
@@ -1549,7 +1549,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
         %{"run_id" => run_id, "step_id" => step_id},
         socket
       ) do
-        IO.puts("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
     case rerun(socket, run_id, step_id) do
       {:ok, socket} ->
         {:noreply, socket}
@@ -2343,7 +2342,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
 
     save_or_get_workflow =
       if has_edit_priority? do
-        Helpers.save_workflow(%{changeset | action: :update})
+        Helpers.save_workflow(%{changeset | action: :update}, nil)
       else
         {:ok, get_workflow_by_id(workflow_id)}
       end

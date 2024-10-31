@@ -53,9 +53,10 @@ defmodule Lightning.Workflows do
 
   def get_workflow(id), do: Repo.get(Workflow, id)
 
-  @spec save_workflow(Ecto.Changeset.t(Workflow.t()) | map()) ::
+  # TODO Change typespec from any() to struct() when done
+  @spec save_workflow(Ecto.Changeset.t(Workflow.t()) | map(), any()) ::
           {:ok, Workflow.t()} | {:error, Ecto.Changeset.t(Workflow.t())}
-  def save_workflow(%Ecto.Changeset{data: %Workflow{}} = changeset) do
+  def save_workflow(%Ecto.Changeset{data: %Workflow{}} = changeset, _actor) do
     Multi.new()
     |> Multi.insert_or_update(:workflow, changeset)
     |> then(fn multi ->
@@ -89,9 +90,9 @@ defmodule Lightning.Workflows do
     end
   end
 
-  def save_workflow(%{} = attrs) do
+  def save_workflow(%{} = attrs, actor) do
     Workflow.changeset(%Workflow{}, attrs)
-    |> save_workflow()
+    |> save_workflow(actor)
   end
 
   @spec publish_kafka_trigger_events(Ecto.Changeset.t(Workflow.t())) :: :ok

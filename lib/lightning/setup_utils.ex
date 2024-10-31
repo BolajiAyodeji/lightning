@@ -200,7 +200,7 @@ defmodule Lightning.SetupUtils do
       Workflows.save_workflow(%{
         name: "Sample Workflow",
         project_id: project.id
-      })
+      }, nil)
 
     {:ok, source_trigger} =
       Workflows.build_trigger(%{
@@ -318,7 +318,7 @@ defmodule Lightning.SetupUtils do
       Workflows.save_workflow(%{
         name: "OpenHIE Workflow",
         project_id: openhie_project.id
-      })
+      }, nil)
 
     {:ok, openhie_trigger} =
       Workflows.build_trigger(%{
@@ -540,7 +540,7 @@ defmodule Lightning.SetupUtils do
       Workflows.save_workflow(%{
         name: "DHIS2 to Sheets",
         project_id: project.id
-      })
+      }, nil)
 
     user = get_most_privileged_user!(project)
 

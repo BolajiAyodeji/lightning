@@ -41,10 +41,10 @@ defmodule Lightning.WorkflowsTest do
       project = insert(:project)
       valid_attrs = %{name: "some-name", project_id: project.id}
 
-      assert {:ok, workflow} = Workflows.save_workflow(valid_attrs)
+      assert {:ok, workflow} = Workflows.save_workflow(valid_attrs, nil)
 
       assert {:error, %Ecto.Changeset{} = changeset} =
-               Workflows.save_workflow(valid_attrs)
+               Workflows.save_workflow(valid_attrs, nil)
 
       assert %{
                name: [
@@ -61,7 +61,7 @@ defmodule Lightning.WorkflowsTest do
 
       assert {:ok, workflow} =
                Workflows.change_workflow(workflow, update_attrs)
-               |> Workflows.save_workflow()
+               |> Workflows.save_workflow(nil)
 
       assert workflow.name == "some-updated-name"
     end
@@ -111,7 +111,7 @@ defmodule Lightning.WorkflowsTest do
 
       Events.subscribe_to_kafka_trigger_updated()
 
-      changeset |> Workflows.save_workflow()
+      changeset |> Workflows.save_workflow(nil)
 
       assert_received %KafkaTriggerUpdated{trigger_id: ^kafka_trigger_1_id}
       assert_received %KafkaTriggerUpdated{trigger_id: ^kafka_trigger_2_id}
@@ -163,7 +163,7 @@ defmodule Lightning.WorkflowsTest do
 
       Events.subscribe_to_kafka_trigger_updated()
 
-      changeset |> Workflows.save_workflow()
+      changeset |> Workflows.save_workflow(nil)
 
       refute_received %KafkaTriggerUpdated{trigger_id: ^kafka_trigger_1_id}
       refute_received %KafkaTriggerUpdated{trigger_id: ^kafka_trigger_2_id}
@@ -184,7 +184,7 @@ defmodule Lightning.WorkflowsTest do
       project = insert(:project)
       valid_attrs = %{name: "some-name", project_id: project.id}
 
-      assert {:ok, workflow} = Lightning.Workflows.save_workflow(valid_attrs)
+      assert {:ok, workflow} = Lightning.Workflows.save_workflow(valid_attrs, nil)
 
       assert workflow.name == "some-name"
 
@@ -205,7 +205,7 @@ defmodule Lightning.WorkflowsTest do
         ]
       }
 
-      assert {:ok, workflow} = Lightning.Workflows.save_workflow(valid_attrs)
+      assert {:ok, workflow} = Lightning.Workflows.save_workflow(valid_attrs, nil)
 
       edge = workflow.edges |> List.first()
       assert edge.source_trigger_id == trigger_id
@@ -234,7 +234,7 @@ defmodule Lightning.WorkflowsTest do
         ]
       }
 
-      {:ok, workflow} = Workflows.save_workflow(valid_attrs)
+      {:ok, workflow} = Workflows.save_workflow(valid_attrs, nil)
 
       edge = workflow.edges |> List.first()
 
@@ -253,7 +253,7 @@ defmodule Lightning.WorkflowsTest do
 
       assert {:ok, workflow} =
                Workflows.change_workflow(workflow, valid_attrs)
-               |> Workflows.save_workflow()
+               |> Workflows.save_workflow(nil)
 
       assert Repo.get_by(Workflows.Job,
                id: job_id,
@@ -271,7 +271,7 @@ defmodule Lightning.WorkflowsTest do
 
       assert {:ok, workflow} =
                Workflows.change_workflow(workflow, valid_attrs)
-               |> Workflows.save_workflow()
+               |> Workflows.save_workflow(nil)
 
       assert workflow.name == "some-name"
       assert workflow.edges |> Enum.empty?()
@@ -282,27 +282,27 @@ defmodule Lightning.WorkflowsTest do
     test "saving with locks" do
       valid_attrs = params_with_assocs(:workflow, jobs: [params_for(:job)])
 
-      assert {:ok, workflow} = Workflows.save_workflow(valid_attrs)
+      assert {:ok, workflow} = Workflows.save_workflow(valid_attrs, nil)
 
       assert workflow.lock_version == 1
 
       assert {:ok, workflow} =
                Workflows.change_workflow(workflow, %{})
-               |> Workflows.save_workflow()
+               |> Workflows.save_workflow(nil)
 
       assert workflow.lock_version == 1,
              "lock_version should not change when no changes are made"
 
       assert {:ok, updated_workflow} =
                Workflows.change_workflow(workflow, %{jobs: [params_for(:job)]})
-               |> Workflows.save_workflow()
+               |> Workflows.save_workflow(nil)
 
       assert updated_workflow.lock_version == 2
 
       # Throws an error because the lock_version is outdated
       assert_raise Ecto.StaleEntryError, fn ->
         Workflows.change_workflow(workflow, %{jobs: [params_for(:job)]})
-        |> Workflows.save_workflow()
+        |> Workflows.save_workflow(nil)
       end
     end
 

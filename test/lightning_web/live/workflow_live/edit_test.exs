@@ -608,73 +608,6 @@ defmodule LightningWeb.WorkflowLive.EditTest do
 
       view |> fill_workflow_name("#{workflow.name} v2")
 
-      workflow.jobs
-      |> Enum.with_index()
-      |> Enum.each(fn {job, idx} ->
-        view |> select_node(job, workflow.lock_version)
-
-        refute view
-               |> has_element?("[id='workflow_jobs_#{idx}_name'][disabled]")
-
-        refute view |> has_element?("[id='adaptor-name'][disabled]")
-        refute view |> has_element?("[id='adaptor-version'][disabled]")
-
-        refute view
-               |> has_element?(
-                 "[id='workflow_jobs_#{idx}_project_credential_id'][disabled]"
-               )
-
-        view |> click_edit(job)
-
-        assert view
-               |> has_element?(
-                 "[id='inspector-workflow-version'][aria-label='This is the latest version of this workflow']",
-                 "latest"
-               )
-
-        refute view
-               |> has_element?("[id='manual_run_form_dataclip_id'][disabled]")
-
-        refute view
-               |> has_element?(
-                 "[id='job-editor-#{job.id}'][data-disabled='true']"
-               )
-
-        refute view
-               |> has_element?("[id='version-switcher-inspector-#{job.id}]")
-
-        refute view
-               |> has_element?(
-                 "[type='submit'][form='workflow-form'][disabled]",
-                 "Save"
-               )
-      end)
-
-      workflow.edges
-      |> Enum.with_index()
-      |> Enum.each(fn {edge, idx} ->
-        view |> select_node(edge, workflow.lock_version)
-
-        refute view
-               |> has_element?(
-                 "[id='workflow_edges_#{idx}_condition_type'][disabled]"
-               )
-      end)
-
-      workflow.triggers
-      |> Enum.with_index()
-      |> Enum.each(fn {trigger, idx} ->
-        view |> select_node(trigger, workflow.lock_version)
-
-        refute view
-               |> has_element?("[id='triggerType'][disabled]")
-
-        refute view
-               |> has_element?(
-                 "[id='workflow_triggers_#{idx}_enabled'][disabled]"
-               )
-      end)
-
       job_1 = List.first(workflow.jobs)
 
       view |> select_node(job_1, workflow.lock_version)
@@ -695,15 +628,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
       |> form("#workflow-form")
       |> render_submit()
 
-      audit_query = from a in Audit, where: a.event == "snapshot_created"
-
-      audit_event = Lightning.Repo.one(audit_query)
-
       workflow = Repo.reload!(workflow)
-
-      assert snapshot.lock_version < workflow.lock_version
-
-      _version = String.slice(snapshot.id, 0..6)
 
       view
       |> element(
@@ -712,13 +637,26 @@ defmodule LightningWeb.WorkflowLive.EditTest do
       )
       |> render_click()
 
-      {:ok, _view, _html} =
+      {:ok, view, _html} =
         live(
           conn,
           ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: snapshot.lock_version]}"
         )
 
-      # RORY COPY TO HERE
+      last_edge = List.last(snapshot.edges)
+
+      view |> select_node(last_edge, snapshot.lock_version)
+
+      assert force_event(view, :manual_run_submit, %{}) =~
+               "Cannot run in snapshot mode, switch to latest."
+
+      assert force_event(view, :rerun, nil, nil) =~
+               "Cannot rerun in snapshot mode, switch to latest."
+
+      audit_query = from a in Audit, where: a.event == "snapshot_created"
+
+      audit_event = Lightning.Repo.one(audit_query)
+
       assert %{
         actor_id: ^user_id,
         item_id: ^workflow_id,
@@ -754,7 +692,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
 
       {:ok, workflow} =
         Workflows.change_workflow(workflow, %{jobs: jobs_attrs})
-        |> Workflows.save_workflow()
+        |> Workflows.save_workflow(nil)
 
       {:ok, latest_snapshot} = Snapshot.get_or_create_latest_for(workflow)
 
@@ -856,7 +794,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
 
       {:ok, workflow} =
         Workflows.change_workflow(workflow, %{jobs: jobs_attrs})
-        |> Workflows.save_workflow()
+        |> Workflows.save_workflow(nil)
 
       {:ok, latest_snapshot} = Snapshot.get_or_create_latest_for(workflow)
 
