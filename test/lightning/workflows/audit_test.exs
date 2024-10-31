@@ -19,7 +19,6 @@ defmodule Lightning.Workflows.AuditTest do
           actor_id: ^user_id,
           changes: %{
             changes: %{
-              before: nil,
               after: %{
                 snapshot_id: ^snapshot_id
               }

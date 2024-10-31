@@ -10,6 +10,7 @@ defmodule Lightning.Workflows do
   alias Lightning.KafkaTriggers
   alias Lightning.Projects.Project
   alias Lightning.Repo
+  alias Lightning.Workflows.Audit
   alias Lightning.Workflows.Edge
   alias Lightning.Workflows.Events
   alias Lightning.Workflows.Job
@@ -56,8 +57,9 @@ defmodule Lightning.Workflows do
   # TODO Change typespec from any() to struct() when done
   @spec save_workflow(Ecto.Changeset.t(Workflow.t()) | map(), any()) ::
           {:ok, Workflow.t()} | {:error, Ecto.Changeset.t(Workflow.t())}
-  def save_workflow(%Ecto.Changeset{data: %Workflow{}} = changeset, _actor) do
+  def save_workflow(%Ecto.Changeset{data: %Workflow{}} = changeset, actor) do
     Multi.new()
+    |> Multi.put(:actor, actor)
     |> Multi.insert_or_update(:workflow, changeset)
     |> then(fn multi ->
       if changeset.changes == %{} do
@@ -167,6 +169,11 @@ defmodule Lightning.Workflows do
       &(Map.get(&1, :workflow) |> Snapshot.build()),
       returning: false
     )
+    |> Multi.insert(:audit, fn changes ->
+      %{snapshot: %{id: snapshot_id}, workflow: %{id: workflow_id}} = changes
+
+      Audit.snapshot_created(workflow_id, snapshot_id, changes.actor)
+    end)
   end
 
   # Helper to preload associations only if they are present in the attributes

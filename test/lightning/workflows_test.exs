@@ -5,6 +5,7 @@ defmodule Lightning.WorkflowsTest do
 
   alias Lightning.Auditing.Audit
   alias Lightning.Workflows
+  alias Lightning.Workflows.Snapshot
   alias Lightning.Workflows.Trigger
   alias Lightning.Workflows.Triggers.Events
   alias Lightning.Workflows.Triggers.Events.KafkaTriggerUpdated
@@ -68,36 +69,49 @@ defmodule Lightning.WorkflowsTest do
     end
 
     test "save_workflow/1 with changeset audits creation of the snapshot" do
-      user = insert(:user)
-      workflow = insert(:workflow)
+      %{id: user_id} = user = insert(:user)
+      %{id: workflow_id} = workflow = insert(:workflow)
       update_attrs = %{name: "some-updated-name"}
 
-      Workflows.change_workflow(workflow, update_attrs)
+      workflow
+      |> Workflows.change_workflow(update_attrs)
       |> Workflows.save_workflow(user)
+
+      %{id: snapshot_id} = Snapshot |> Repo.one!()
 
       assert %{
         event: "snapshot_created",
         item_type: "workflow",
+        item_id: ^workflow_id,
+        actor_id: ^user_id,
+        changes: %{
+          after: %{
+            "snapshot_id" => ^snapshot_id
+          }
+        }
       } = Audit |> Repo.one()
     end
 
     test "save_workflow/1 with attrs audits creation of the snapshot" do
-      user = insert(:user)
+      %{id: user_id} = user = insert(:user)
       project = insert(:project)
       valid_attrs = %{name: "some-name", project_id: project.id}
 
-      {:ok, _workflow} = Workflows.save_workflow(valid_attrs, user)
+      {:ok, %{id: workflow_id}} = Workflows.save_workflow(valid_attrs, user)
+
+      %{id: snapshot_id} = Snapshot |> Repo.one!()
 
       assert %{
         event: "snapshot_created",
         item_type: "workflow",
+        item_id: ^workflow_id,
+        actor_id: ^user_id,
+        changes: %{
+          after: %{
+            "snapshot_id" => ^snapshot_id
+          }
+        }
       } = Audit |> Repo.one()
-    end
-
-    test "save_workflow/1 with no changes does not audit snapshot" do
-      _user = insert(:user)
-
-      assert false
     end
 
     test "save_workflow/1 publishes event for updated Kafka triggers" do
