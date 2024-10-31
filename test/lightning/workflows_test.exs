@@ -3,6 +3,7 @@ defmodule Lightning.WorkflowsTest do
 
   import Lightning.Factories
 
+  alias Lightning.Auditing.Audit
   alias Lightning.Workflows
   alias Lightning.Workflows.Trigger
   alias Lightning.Workflows.Triggers.Events
@@ -64,6 +65,39 @@ defmodule Lightning.WorkflowsTest do
                |> Workflows.save_workflow(nil)
 
       assert workflow.name == "some-updated-name"
+    end
+
+    test "save_workflow/1 with changeset audits creation of the snapshot" do
+      user = insert(:user)
+      workflow = insert(:workflow)
+      update_attrs = %{name: "some-updated-name"}
+
+      Workflows.change_workflow(workflow, update_attrs)
+      |> Workflows.save_workflow(user)
+
+      assert %{
+        event: "snapshot_created",
+        item_type: "workflow",
+      } = Audit |> Repo.one()
+    end
+
+    test "save_workflow/1 with attrs audits creation of the snapshot" do
+      user = insert(:user)
+      project = insert(:project)
+      valid_attrs = %{name: "some-name", project_id: project.id}
+
+      {:ok, _workflow} = Workflows.save_workflow(valid_attrs, user)
+
+      assert %{
+        event: "snapshot_created",
+        item_type: "workflow",
+      } = Audit |> Repo.one()
+    end
+
+    test "save_workflow/1 with no changes does not audit snapshot" do
+      _user = insert(:user)
+
+      assert false
     end
 
     test "save_workflow/1 publishes event for updated Kafka triggers" do
