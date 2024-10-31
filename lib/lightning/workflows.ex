@@ -151,14 +151,18 @@ defmodule Lightning.Workflows do
   defp find_dependent_change(multi) do
     multi
     |> Multi.to_list()
-    |> Enum.find_value(fn {key, {_action, changeset_or_struct, _}} ->
-      case changeset_or_struct do
-        %{data: %{__struct__: model}} when model in [Job, Edge, Trigger] ->
-          key
+    |> Enum.find_value(fn
+      {key, {_action, changeset_or_struct, _}} ->
+        case changeset_or_struct do
+          %{data: %{__struct__: model}} when model in [Job, Edge, Trigger] ->
+            key
 
-        _other ->
-          false
-      end
+          _other ->
+            false
+        end
+
+      {_key, {:put, _struct}} ->
+        false
     end)
   end
 
@@ -277,8 +281,9 @@ defmodule Lightning.Workflows do
   @doc """
   Creates an edge
   """
-  def create_edge(attrs) do
+  def create_edge(attrs, actor) do
     Multi.new()
+    |> Multi.put(:actor, actor)
     |> Multi.insert(:edge, Edge.new(attrs))
     |> capture_snapshot()
     |> Repo.transaction()
