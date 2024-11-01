@@ -1404,7 +1404,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
 
   def handle_event("save", params, socket) do
     %{
-      current_user: _current_user,
+      current_user: current_user,
       project: project,
       workflow_params: initial_params,
       can_edit_workflow: can_edit_workflow,
@@ -1433,7 +1433,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
       %{assigns: %{changeset: changeset}} =
         socket = socket |> apply_params(next_params, :workflow)
 
-      case Helpers.save_workflow(changeset, nil) do
+      case Helpers.save_workflow(changeset, current_user) do
         {:ok, workflow} ->
           snapshot = snapshot_by_version(workflow.id, workflow.lock_version)
 
@@ -2342,7 +2342,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
 
     save_or_get_workflow =
       if has_edit_priority? do
-        Helpers.save_workflow(%{changeset | action: :update}, nil)
+        Helpers.save_workflow(%{changeset | action: :update}, current_user)
       else
         {:ok, get_workflow_by_id(workflow_id)}
       end
