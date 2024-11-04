@@ -676,6 +676,89 @@ defmodule LightningWeb.WorkflowLive.EditTest do
       } = audit_event
     end
 
+    test "Creating an audit event for a manual run submission", %{
+      conn: conn,
+      project: project,
+      user: %{id: user_id},
+      workflow: %{id: workflow_id} = workflow
+    } do
+      {:ok, view, _html} =
+        live(
+          conn,
+          ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: workflow.lock_version]}"
+        )
+
+      {:ok, snapshot} = Snapshot.get_or_create_latest_for(workflow)
+
+      # view |> fill_workflow_name("#{workflow.name} v2")
+      #
+      # job_1 = List.first(workflow.jobs)
+      #
+      # view |> select_node(job_1, workflow.lock_version)
+      #
+      # view
+      # |> form("#workflow-form", %{
+      #   "workflow" => %{
+      #     "jobs" => %{
+      #       "0" => %{
+      #         "name" => "#{job_1.name} v2"
+      #       }
+      #     }
+      #   }
+      # })
+      # |> render_change()
+      #
+      # view
+      # |> form("#workflow-form")
+      # |> render_submit()
+
+      workflow = Repo.reload!(workflow)
+
+      view
+      |> element(
+        "a[href='/projects/#{project.id}/w'][data-phx-link='redirect']",
+        "Workflows"
+      )
+      |> render_click()
+
+      {:ok, view, _html} =
+        live(
+          conn,
+          ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: snapshot.lock_version]}"
+        )
+
+      last_edge = List.last(snapshot.edges)
+
+      view |> select_node(last_edge, snapshot.lock_version)
+
+      assert force_event(view, :manual_run_submit, %{}) =~
+               "Cannot run in snapshot mode, switch to latest."
+
+      assert force_event(view, :rerun, nil, nil) =~
+               "Cannot rerun in snapshot mode, switch to latest."
+
+      snapshots_query = from s in Snapshot, order_by: [desc: s.inserted_at]
+
+      [%{id: latest_snapshot_id} | [_, _]] =
+          Lightning.Repo.all(snapshots_query)
+
+      audit_query =
+        from a in Audit,
+          where: a.event == "snapshot_created",
+          order_by: [desc: a.inserted_at],
+          limit: 1
+
+      audit_event = Lightning.Repo.one(audit_query)
+
+      assert %{
+        actor_id: ^user_id,
+        item_id: ^workflow_id,
+        item_type: "workflow",
+        changes: %{
+          after: %{"snapshot_id" => ^latest_snapshot_id}
+        }
+      } = audit_event
+    end
     test "Inspector renders run thru their snapshots and allows switching to the latest versions for editing", %{
       conn: conn,
       project: project,
