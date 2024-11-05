@@ -759,6 +759,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
         }
       } = audit_event
     end
+
     test "Inspector renders run thru their snapshots and allows switching to the latest versions for editing", %{
       conn: conn,
       project: project,

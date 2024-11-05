@@ -1611,8 +1611,6 @@ defmodule LightningWeb.WorkflowLive.Edit do
         get_workflow_by_id(workflow.id)
       end
 
-      IO.puts tag
-    IO.puts "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARRRRRRRRRRRRRRRRRRRRRGGGGGGGGGGGGGGGGGGGGGGGGGGHHHHHHHHHHHHHHHHHH"
     with true <- (can_run_workflow && can_edit_workflow) || :not_authorized,
          true <- tag == "latest" || :view_only,
          {:ok, %{workorder: workorder, workflow: workflow}} <-
@@ -1623,6 +1621,7 @@ defmodule LightningWeb.WorkflowLive.Edit do
              selected_job: selected_job,
              created_by: current_user
            ) do
+
       %{runs: [run]} = workorder
 
       Runs.subscribe(run)
