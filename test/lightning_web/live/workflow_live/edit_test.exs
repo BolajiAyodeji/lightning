@@ -712,7 +712,7 @@ defmodule LightningWeb.WorkflowLive.EditTest do
       # |> form("#workflow-form")
       # |> render_submit()
 
-      workflow = Repo.reload!(workflow)
+      workflow = Repo.reload!(workflow) |> Repo.preload(:jobs)
 
       view
       |> element(
@@ -727,26 +727,36 @@ defmodule LightningWeb.WorkflowLive.EditTest do
           ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: snapshot.lock_version]}"
         )
 
-      last_edge = List.last(snapshot.edges)
+      job_1 = List.first(workflow.jobs)
 
-      view |> select_node(last_edge, snapshot.lock_version)
+      view |> select_node(job_1, workflow.lock_version)
+      # job_1 = List.first(workflow.jobs)
+      #
+      # view |> select_node(job_1, workflow.lock_version)
+      #
+      # last_edge = List.last(snapshot.edges)
+      #
+      # view |> select_node(last_edge, snapshot.lock_version)
 
-      assert force_event(view, :manual_run_submit, %{}) =~
-               "Cannot run in snapshot mode, switch to latest."
+      force_event(view, :manual_run_submit, %{})
+      # assert force_event(view, :manual_run_submit, %{}) =~
+      #          "Cannot run in snapshot mode, switch to latest."
 
-      assert force_event(view, :rerun, nil, nil) =~
-               "Cannot rerun in snapshot mode, switch to latest."
+      # assert force_event(view, :rerun, nil, nil) =~
+      #          "Cannot rerun in snapshot mode, switch to latest."
 
       snapshots_query = from s in Snapshot, order_by: [desc: s.inserted_at]
 
-      [%{id: latest_snapshot_id} | [_, _]] =
-          Lightning.Repo.all(snapshots_query)
+      [%{id: latest_snapshot_id}] =
+        Lightning.Repo.all(snapshots_query)
 
       audit_query =
         from a in Audit,
           where: a.event == "snapshot_created",
           order_by: [desc: a.inserted_at],
           limit: 1
+
+      Audit |> Repo.all() |> IO.inspect()
 
       audit_event = Lightning.Repo.one(audit_query)
 

@@ -84,8 +84,6 @@ defmodule LightningWeb.WorkflowLive.Helpers do
   defp build_manual_workorder(params, workflow, opts) do
     {selected_job, opts} = Keyword.pop!(opts, :selected_job)
 
-    dbg(selected_job)
-
     opts =
       Keyword.merge(opts, job: Repo.reload(selected_job), workflow: workflow)
 
