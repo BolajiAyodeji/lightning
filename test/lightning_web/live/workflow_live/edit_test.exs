@@ -11,8 +11,10 @@ defmodule LightningWeb.WorkflowLive.EditTest do
 
   alias Lightning.Auditing.Audit
   alias Lightning.Helpers
+  alias Lightning.Invocation.Dataclip
   alias Lightning.Repo
   alias Lightning.Workflows
+  # alias Lightning.Workflows.Job
   alias Lightning.Workflows.Snapshot
   alias Lightning.Workflows.Workflow
   alias LightningWeb.CredentialLiveHelpers
@@ -688,7 +690,13 @@ defmodule LightningWeb.WorkflowLive.EditTest do
           ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: workflow.lock_version]}"
         )
 
+      job_1 = List.first(workflow.jobs)
+
       {:ok, snapshot} = Snapshot.get_or_create_latest_for(workflow)
+
+      dataclip = insert(:dataclip)
+      work_order = insert(:workorder, workflow: workflow)
+      insert(:run, work_order: work_order, dataclip: dataclip, starting_job: job_1)
 
       # view |> fill_workflow_name("#{workflow.name} v2")
       #
@@ -727,9 +735,13 @@ defmodule LightningWeb.WorkflowLive.EditTest do
           ~p"/projects/#{project.id}/w/#{workflow.id}?#{[v: snapshot.lock_version]}"
         )
 
-      job_1 = List.first(workflow.jobs)
-
       view |> select_node(job_1, workflow.lock_version)
+
+      view
+      |> element("#open-inspector-#{job_1.id}")
+      |> render_click()
+
+      Dataclip |> Repo.all() |> IO.inspect()
       # job_1 = List.first(workflow.jobs)
       #
       # view |> select_node(job_1, workflow.lock_version)
