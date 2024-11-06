@@ -199,11 +199,11 @@ defmodule Lightning.Workflows.Snapshot do
   @doc """
   Get the latest snapshot for a workflow, or create one if it doesn't exist.
   """
-  @spec get_or_create_latest_for(Workflow.t()) ::
+  @spec get_or_create_latest_for(Workflow.t(), struct()) ::
           {:ok, t()} | {:error, Ecto.Changeset.t()}
-  def get_or_create_latest_for(workflow) do
+  def get_or_create_latest_for(workflow, actor) do
     Multi.new()
-    |> get_or_create_latest_for(workflow)
+    |> get_or_create_latest_for(workflow, actor)
     |> Repo.transaction()
     |> case do
       {:ok, %{snapshot: snapshot}} -> {:ok, snapshot}
@@ -213,7 +213,7 @@ defmodule Lightning.Workflows.Snapshot do
 
   @spec get_or_create_latest_for(Multi.t(), binary() | :snapshot, Workflow.t()) ::
           Multi.t()
-  def get_or_create_latest_for(multi, name \\ :snapshot, workflow) do
+  def get_or_create_latest_for(multi, name \\ :snapshot, workflow, _actor) do
     unique_op = "_existing#{System.unique_integer()}"
 
     multi
