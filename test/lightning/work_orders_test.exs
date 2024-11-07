@@ -4,6 +4,7 @@ defmodule Lightning.WorkOrdersTest do
   import Lightning.Factories
 
   alias Ecto.Multi
+  alias Lightning.Auditing.Audit
   alias Lightning.Extensions.MockUsageLimiter
   alias Lightning.Extensions.UsageLimiting.Action
   alias Lightning.Extensions.Message
@@ -182,6 +183,29 @@ defmodule Lightning.WorkOrdersTest do
              |> Repo.get_by(trigger_id: trigger.id) != nil
     end
 
+    @tag trigger_type: :cron
+    test "with a trigger assigns the provided actor to the event", %{
+      snapshot: snapshot,
+      trigger: trigger,
+      workflow: workflow
+    } do
+      Repo.delete!(snapshot)
+
+      Lightning.WorkOrders.subscribe(workflow.project_id)
+
+      dataclip = insert(:dataclip)
+      %{id: actor_id} = actor = insert(:user)
+
+      WorkOrders.create_for(
+        trigger,
+        actor: actor,
+        dataclip: dataclip,
+        workflow: workflow
+      )
+
+      assert %{actor_id: ^actor_id} = Repo.one(Audit)
+    end
+
     test "with a manual workorder", context do
       %{workflow: workflow, job: job, snapshot: snapshot} = context
       user = insert(:user)
@@ -230,6 +254,38 @@ defmodule Lightning.WorkOrdersTest do
       assert_received %Events.WorkOrderCreated{
         work_order: %{id: ^workorder_id}
       }
+    end
+
+    test "assigns the created_by oft the Manual as the actor for the audit", %{
+      job: job,
+      snapshot: snapshot,
+      workflow: workflow
+    } do
+      Repo.delete(snapshot)
+
+      %{id: user_id} = user = insert(:user)
+      project_id = workflow.project_id
+      Lightning.WorkOrders.subscribe(project_id)
+
+      {:ok, manual} =
+        Lightning.WorkOrders.Manual.new(
+          %{
+            "body" =>
+            Jason.encode!(%{
+              "key_left" => "value_left",
+              "configuration" => %{"password" => "secret"}
+            })
+          },
+          workflow: workflow,
+          project: workflow.project,
+          job: job,
+          created_by: user
+        )
+        |> Ecto.Changeset.apply_action(:validate)
+
+      WorkOrders.create_for(manual)
+
+      assert %{actor_id: ^user_id} = Repo.one!(Audit)
     end
 
     test "with a job", %{job: job, workflow: workflow, snapshot: snapshot} do
@@ -2431,7 +2487,12 @@ defmodule Lightning.WorkOrdersTest do
       %{triggers: [trigger]} = workflow = insert(:simple_workflow)
 
       %{runs: [run]} =
-        work_order_for(trigger, workflow: workflow, dataclip: dataclip)
+        work_order_for(
+          trigger,
+          workflow: workflow,
+          dataclip: dataclip,
+          actor: insert(:user)
+        )
         |> insert()
 
       {:ok, work_order} = WorkOrders.update_state(run)
@@ -2444,6 +2505,48 @@ defmodule Lightning.WorkOrdersTest do
       {:ok, work_order} = WorkOrders.update_state(run)
 
       assert work_order.state == :running
+    end
+  end
+
+  describe ".enqueue_many_for_retry/2" do
+    test "assigns the creating user as the auditing actor" do
+      dataclip = insert(:dataclip)
+      workflow = insert(:simple_workflow)
+      %{id: work_order_id} =
+        insert(:workorder, workflow: workflow, dataclip: dataclip)
+      %{id: user_id} = insert(:user)
+      
+      WorkOrders.enqueue_many_for_retry([work_order_id], user_id)
+
+      assert %{actor_id: ^user_id} = Repo.one(Audit)
+    end
+  end
+
+  describe ".build"  do
+    test "uses the provided actor for the snapshot audit event" do
+      dataclip = insert(:dataclip)
+      workflow = insert(:simple_workflow)
+      %{id: actor_id} = actor = insert(:user)
+
+      WorkOrders.build(%{dataclip: dataclip, workflow: workflow, actor: actor})
+
+      assert %{actor_id: ^actor_id} = Repo.one(Audit)
+    end
+  end
+
+  describe ".build_for" do
+    test "uses the provided actor for the snapshot audit event" do
+      dataclip = insert(:dataclip)
+      trigger = insert(:trigger)
+      workflow = insert(:simple_workflow)
+      %{id: actor_id} = actor = insert(:user)
+
+      WorkOrders.build_for(
+        trigger,
+        %{dataclip: dataclip, workflow: workflow, actor: actor}
+      )
+
+      assert %{actor_id: ^actor_id} = Repo.one(Audit)
     end
   end
 end
