@@ -1,6 +1,7 @@
 defmodule Lightning.Workflows.SnapshotsTest do
   use Lightning.DataCase, async: true
 
+  alias Lightning.Auditing.Audit
   alias Lightning.Workflows
 
   import Lightning.Factories
@@ -146,16 +147,16 @@ defmodule Lightning.Workflows.SnapshotsTest do
       assert {:ok, %{id: snapshot_id}} =
                Workflows.Snapshot.get_or_create_latest_for(workflow, actor)
 
-      audit = Audit |> Repo.one!()
+      audit = Repo.one!(Audit)
 
       assert %{
-        event: "snapshot_created",
-        item_id: ^workflow_id,
-        actor_id: ^actor_id,
-        changes: %{
-          after: %{"snapshot_id" => ^snapshot_id}
-        }
-      } = audit
+               event: "snapshot_created",
+               item_id: ^workflow_id,
+               actor_id: ^actor_id,
+               changes: %{
+                 after: %{"snapshot_id" => ^snapshot_id}
+               }
+             } = audit
     end
 
     test "with an existing snapshot", %{actor: actor} do
@@ -163,6 +164,7 @@ defmodule Lightning.Workflows.SnapshotsTest do
 
       {:ok, existing} =
         Workflows.Snapshot.get_or_create_latest_for(workflow, actor)
+
       {:ok, latest} =
         Workflows.Snapshot.get_or_create_latest_for(workflow, actor)
 

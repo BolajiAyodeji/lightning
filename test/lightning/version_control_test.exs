@@ -429,8 +429,8 @@ defmodule Lightning.VersionControlTest do
     end
 
     test "creates audit entries for any snapshots created", %{
-      user: %{id: user_id, email: email},
-      repo_connection: repo_connection,
+      user: user,
+      repo_connection: %{id: repo_connection_id} = repo_connection,
       workflow: %{id: workflow_id} = workflow
     } do
       # refute Snapshot.get_current_for(workflow)
@@ -439,21 +439,20 @@ defmodule Lightning.VersionControlTest do
       expect_get_repo(repo_connection.repo)
       expect_create_workflow_dispatch(repo_connection.repo, "openfn-pull.yml")
 
-      assert :ok = VersionControl.initiate_sync(repo_connection, email)
+      assert :ok = VersionControl.initiate_sync(repo_connection, user.email)
 
       %{id: snapshot_id} = Snapshot.get_current_for(workflow)
 
       audit = Audit |> Repo.one!()
 
       assert %{
-        event: "snapshot_created",
-        item_id: ^workflow_id,
-        actor_id: ^user_id,
-        snapshot_id: ^snapshot_id,
-        changes: %{
-          after: %{"snapshot_id" => ^snapshot_id}
-        }
-      } = audit
+               event: "snapshot_created",
+               item_id: ^workflow_id,
+               actor_id: ^repo_connection_id,
+               changes: %{
+                 after: %{"snapshot_id" => ^snapshot_id}
+               }
+             } = audit
     end
   end
 
