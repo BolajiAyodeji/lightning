@@ -9,6 +9,7 @@ defmodule Lightning.WorkOrdersTest do
   alias Lightning.Extensions.UsageLimiting.Action
   alias Lightning.Extensions.Message
   alias Lightning.KafkaTriggers.TriggerKafkaMessageRecord
+  alias Lightning.Workflows.Snapshot
   alias Lightning.WorkOrders
   alias Lightning.WorkOrders.Events
   alias Lightning.WorkOrders.RetryManyWorkOrdersJob
@@ -256,7 +257,7 @@ defmodule Lightning.WorkOrdersTest do
       }
     end
 
-    test "assigns the created_by oft the Manual as the actor for the audit", %{
+    test "assigns the created_by of the Manual as the actor for the audit", %{
       job: job,
       snapshot: snapshot,
       workflow: workflow
@@ -344,6 +345,34 @@ defmodule Lightning.WorkOrdersTest do
 
       assert TriggerKafkaMessageRecord
              |> Repo.get_by(trigger_id: trigger.id) != nil
+    end
+
+    test "with a job, assigns the actor to the audit if snapshot created", %{
+      job: job,
+      workflow: workflow,
+    } do
+      Repo.delete_all(Snapshot)
+
+      project_id = workflow.project_id
+
+      project =
+        Repo.get(Lightning.Projects.Project, project_id)
+        |> Lightning.Projects.Project.changeset(%{retention_policy: :erase_all})
+        |> Repo.update!()
+
+      dataclip = insert(:dataclip, project: project)
+      user = insert(:user)
+      %{id: actor_id} = actor = insert(:user)
+
+      WorkOrders.create_for(
+        job,
+        actor: actor,
+        dataclip: dataclip,
+        workflow: workflow,
+        created_by: user
+      )
+
+      assert %{actor_id: ^actor_id} = Repo.one!(Audit)
     end
   end
 
@@ -628,6 +657,48 @@ defmodule Lightning.WorkOrdersTest do
       assert_received %Events.WorkOrderUpdated{
         work_order: %{id: ^workorder_id}
       }
+    end
+
+    test "if snapshot is created, uses creating user as audit actor", %{
+      workflow: workflow,
+      snapshot: snapshot,
+      trigger: trigger,
+      jobs: [job_a, job_b, job_c]
+    } do
+      %{id: user_id} = user = insert(:user)
+      dataclip = insert(:dataclip)
+      output_dataclip = insert(:dataclip)
+
+      # create existing complete run
+      %{runs: [run]} =
+        insert(:workorder,
+          workflow: workflow,
+          trigger: trigger,
+          dataclip: dataclip,
+          runs: [
+            %{
+              state: :failed,
+              dataclip: dataclip,
+              starting_trigger: trigger,
+              steps: [
+                  insert(:step,
+                    job: job_a,
+                    input_dataclip: dataclip,
+                    output_dataclip: output_dataclip
+                  ),
+                second_step =
+                  insert(:step, job: job_b, input_dataclip: output_dataclip),
+                insert(:step, job: job_c)
+              ]
+            }
+          ]
+        )
+
+      Repo.delete(snapshot)
+
+      WorkOrders.retry(run, second_step, created_by: user)
+
+      assert %{actor_id: ^user_id} = Repo.one!(Audit)
     end
   end
 
@@ -2487,12 +2558,7 @@ defmodule Lightning.WorkOrdersTest do
       %{triggers: [trigger]} = workflow = insert(:simple_workflow)
 
       %{runs: [run]} =
-        work_order_for(
-          trigger,
-          workflow: workflow,
-          dataclip: dataclip,
-          actor: insert(:user)
-        )
+        work_order_for(trigger, workflow: workflow, dataclip: dataclip)
         |> insert()
 
       {:ok, work_order} = WorkOrders.update_state(run)
