@@ -61,8 +61,8 @@ Note that for secure deployments, it's recommended to use a combination of
 
 ### Github
 
-Lightning enables connection to github via Github Apps. The following github
-permissions are needed for the github app:
+Lightning enables connection to GitHub via GitHub Apps. The following GitHub
+repository permissions are needed for the github app:
 
 | **Resource** | **Access**     |
 | ------------ | -------------- |
