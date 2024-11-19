@@ -124,6 +124,14 @@ defmodule Lightning.VersionControlTest do
                params["github_installation_id"]
     end
 
+    test "creating the repo connection creates an audit entry" do
+      project = insert(:project)
+      user = user_with_valid_github_oauth()
+
+      {:ok, repo_connection} =
+        VersionControl.create_github_connection(params, user)
+    end
+
     test "user without an oauth token cannot create a repo connection" do
       project = insert(:project)
       user = insert(:user)
