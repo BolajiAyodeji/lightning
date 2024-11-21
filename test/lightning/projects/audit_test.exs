@@ -235,5 +235,35 @@ defmodule Lightning.Projects.AuditTest do
                }
              } == audit_changes
     end
+
+    test "excludes the config_path if it is nil" do
+      %{
+        branch: branch,
+        repo: repo,
+      } =
+        repo_connection =
+        insert(:project_repo_connection, config_path: nil)
+
+      user = insert(:user)
+
+      changeset =
+        Audit.repo_connection_removed(repo_connection, user)
+
+      assert %{
+               changes: %{
+                 changes: %{
+                   changes: audit_changes
+                 }
+               },
+               valid?: true
+             } = changeset
+
+      assert %{
+               before: %{
+                 branch: branch,
+                 repo: repo,
+               }
+             } == audit_changes
+    end
   end
 end
