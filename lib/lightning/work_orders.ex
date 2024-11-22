@@ -86,7 +86,7 @@ defmodule Lightning.WorkOrders do
     multi
     |> Multi.put(:workflow, opts[:workflow])
     |> get_or_insert_dataclip(opts[:dataclip])
-    |> get_or_create_snapshot(opts[:workflow], opts[:actor])
+    |> Snapshot.include_latest_snapshot(opts[:workflow])
     |> Multi.insert(:workorder, fn %{dataclip: dataclip, snapshot: snapshot} ->
       {without_run?, opts} = Keyword.pop(opts, :without_run, false)
 
@@ -111,7 +111,7 @@ defmodule Lightning.WorkOrders do
   def create_for(%Job{} = job, multi, opts) do
     multi
     |> Multi.put(:workflow, opts[:workflow])
-    |> get_or_create_snapshot(opts[:actor])
+    |> Snapshot.include_latest_snapshot(opts[:workflow])
     |> Multi.insert(:workorder, build_for(job, opts |> Map.new()))
     |> Runs.enqueue()
     |> emit_and_return_work_order()
@@ -128,7 +128,7 @@ defmodule Lightning.WorkOrders do
     end)
     |> get_or_insert_dataclip(manual)
     |> Multi.put(:workflow, manual.workflow)
-    |> get_or_create_snapshot(manual.created_by)
+    |> Snapshot.include_latest_snapshot(manual.workflow)
     |> Multi.insert(:workorder, fn %{dataclip: dataclip, snapshot: snapshot} ->
       build_for(manual.job, %{
         workflow: manual.workflow,
