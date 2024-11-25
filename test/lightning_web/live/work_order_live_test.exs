@@ -2474,6 +2474,8 @@ defmodule LightningWeb.WorkOrderLiveTest do
             end)
         )
 
+      Lightning.Workflows.Snapshot.create(workflow)
+
       %{
         work_order_1: work_order_1,
         work_order_2: work_order_2,

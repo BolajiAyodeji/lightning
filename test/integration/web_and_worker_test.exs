@@ -47,8 +47,6 @@ defmodule Lightning.WebAndWorkerTest do
         workflow =
         insert(:complex_workflow, project: project)
 
-      Snapshot.create(workflow)
-
       # ensure the workflow has parallel jobs. Eliminate the branching edge
       branching_edge =
         Enum.find(edges, fn edge -> edge.condition_type == :on_job_failure end)
@@ -56,6 +54,9 @@ defmodule Lightning.WebAndWorkerTest do
       branching_edge
       |> Ecto.Changeset.change(%{condition_type: :on_job_success})
       |> Repo.update!()
+
+      # Create snapshot only after we have made the edge changes
+      Snapshot.create(workflow |> Repo.reload!())
 
       # Post to webhook
       webhook_body = %{"x" => 1}
@@ -137,8 +138,6 @@ defmodule Lightning.WebAndWorkerTest do
           project_credential: project_credential
         )
 
-      Snapshot.create(workflow)
-
       flow_job =
         insert(:job,
           name: "2nd-job",
@@ -188,6 +187,8 @@ defmodule Lightning.WebAndWorkerTest do
         condition_label: "less_than_1000",
         condition_expression: "state.x < 1000"
       })
+
+      Snapshot.create(workflow)
 
       webhook_body = %{"fieldOne" => 123, "fieldTwo" => "some string"}
 

@@ -11,6 +11,7 @@ defmodule Lightning.RunsTest do
   alias Lightning.Runs
   alias Lightning.WorkOrders
   alias Lightning.Workflows
+  alias Lightning.Workflows.Snapshot
 
   describe "enqueue/1" do
     test "enqueues a run" do
@@ -45,9 +46,10 @@ defmodule Lightning.RunsTest do
       %{triggers: [trigger]} =
         workflow = insert(:simple_workflow)
 
+      Snapshot.create(workflow)
+
       {:ok, %{runs: [run]}} =
         WorkOrders.create_for(trigger,
-          actor: insert(:user),
           workflow: workflow,
           dataclip: params_with_assocs(:dataclip)
         )
@@ -63,12 +65,13 @@ defmodule Lightning.RunsTest do
     test "claims with demand" do
       %{triggers: [trigger]} = workflow = insert(:simple_workflow)
 
+      Snapshot.create(workflow)
+
       [run_1, run_2, run_3] =
         1..3
         |> Enum.map(fn _ ->
           {:ok, %{runs: [run]}} =
             WorkOrders.create_for(trigger,
-              actor: insert(:user),
               workflow: workflow,
               dataclip: params_with_assocs(:dataclip)
             )
@@ -92,10 +95,11 @@ defmodule Lightning.RunsTest do
     test "claims with demand for all immediate run" do
       %{triggers: [trigger]} = workflow = insert(:simple_workflow)
 
+      Snapshot.create(workflow)
+
       [second_last_run, last_run] =
         Enum.map(1..2, fn _i ->
           WorkOrders.create_for(trigger,
-            actor: insert(:user),
             workflow: workflow,
             dataclip: params_with_assocs(:dataclip)
           )
@@ -159,9 +163,10 @@ defmodule Lightning.RunsTest do
     test "removes a run from the queue" do
       %{triggers: [trigger]} = workflow = insert(:simple_workflow)
 
+      Snapshot.create(workflow)
+
       {:ok, %{runs: [run]}} =
         WorkOrders.create_for(trigger,
-          actor: insert(:user),
           workflow: workflow,
           dataclip: params_with_assocs(:dataclip)
         )
@@ -176,6 +181,8 @@ defmodule Lightning.RunsTest do
     test "creates a new step for a run" do
       dataclip = insert(:dataclip)
       %{triggers: [trigger], jobs: [job]} = workflow = insert(:simple_workflow)
+
+      Snapshot.create(workflow)
 
       %{runs: [run]} =
         work_order_for(trigger, workflow: workflow, dataclip: dataclip)
@@ -229,6 +236,8 @@ defmodule Lightning.RunsTest do
 
       %{triggers: [trigger], jobs: [old_job]} =
         workflow = insert(:simple_workflow)
+
+      Snapshot.create(workflow)
 
       %{runs: [run_1]} =
         work_order_for(trigger, workflow: workflow, dataclip: dataclip)
@@ -448,6 +457,8 @@ defmodule Lightning.RunsTest do
             )
         end
 
+      Snapshot.create(workflow)
+
       %{runs: [run]} =
         work_order_for(trigger, workflow: workflow, dataclip: dataclip)
         |> insert()
@@ -485,6 +496,8 @@ defmodule Lightning.RunsTest do
         |> insert()
 
       dataclip = insert(:dataclip)
+
+      Snapshot.create(workflow)
 
       %{trigger: trigger, workflow: workflow, dataclip: dataclip}
     end

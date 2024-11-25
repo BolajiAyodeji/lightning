@@ -5,6 +5,7 @@ defmodule LightningWeb.RunLive.ShowTest do
   import Lightning.Factories
 
   alias Lightning.WorkOrders
+  alias Lightning.Workflows.Snapshot
   alias Phoenix.LiveView.AsyncResult
 
   setup :stub_rate_limiter_ok
@@ -15,7 +16,10 @@ defmodule LightningWeb.RunLive.ShowTest do
 
     test "with exit error", %{conn: conn, project: project} do
       %{triggers: [%{id: webhook_trigger_id}]} =
+        workflow =
         insert(:simple_workflow, project: project)
+
+      Snapshot.create(workflow)
 
       # Post to webhook
       assert post(conn, "/i/#{webhook_trigger_id}", %{"x" => 1})
@@ -35,7 +39,10 @@ defmodule LightningWeb.RunLive.ShowTest do
 
     test "lifecycle of a run", %{conn: conn, project: project} do
       %{triggers: [%{id: webhook_trigger_id}], jobs: [job_a, job_b | _rest]} =
+        workflow =
         insert(:complex_workflow, project: project)
+
+      Snapshot.create(workflow)
 
       # Post to webhook
       assert %{"work_order_id" => wo_id} =
