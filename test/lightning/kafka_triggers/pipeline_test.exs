@@ -15,9 +15,10 @@ defmodule Lightning.KafkaTriggers.PipelineTest do
   alias Lightning.KafkaTriggers.TriggerKafkaMessageRecord
   alias Lightning.KafkaTriggers.Pipeline
   alias Lightning.Repo
+  alias Lightning.WorkOrder
+  alias Lightning.Workflows.Snapshot
   alias Lightning.Workflows.Triggers.Events
   alias Lightning.Workflows.Triggers.Events.KafkaTriggerNotificationSent
-  alias Lightning.WorkOrder
 
   describe ".start_link/1" do
     test "starts a Broadway GenServer process with SASL credentials" do
@@ -173,6 +174,8 @@ defmodule Lightning.KafkaTriggers.PipelineTest do
           enabled: true
         )
 
+      Snapshot.create(trigger_1.workflow)
+
       trigger_2 =
         insert(
           :trigger,
@@ -180,6 +183,8 @@ defmodule Lightning.KafkaTriggers.PipelineTest do
           kafka_configuration: configuration(index: 2, ssl: false),
           enabled: true
         )
+
+      Snapshot.create(trigger_1.workflow)
 
       context = %{trigger_id: trigger_1.id |> String.to_atom()}
 

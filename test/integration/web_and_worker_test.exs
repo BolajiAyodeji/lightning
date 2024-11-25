@@ -11,8 +11,9 @@ defmodule Lightning.WebAndWorkerTest do
   alias Lightning.Runs.Events
   alias Lightning.Invocation
   alias Lightning.Repo
-  alias Lightning.WorkOrders
   alias Lightning.Runtime.RuntimeManager
+  alias Lightning.WorkOrders
+  alias Lightning.Workflows.Snapshot
 
   require Run
 
@@ -43,7 +44,10 @@ defmodule Lightning.WebAndWorkerTest do
       project = insert(:project)
 
       %{triggers: [%{id: webhook_trigger_id}], edges: edges} =
+        workflow =
         insert(:complex_workflow, project: project)
+
+      Snapshot.create(workflow)
 
       # ensure the workflow has parallel jobs. Eliminate the branching edge
       branching_edge =
@@ -132,6 +136,8 @@ defmodule Lightning.WebAndWorkerTest do
           body: webhook_expression(),
           project_credential: project_credential
         )
+
+      Snapshot.create(workflow)
 
       flow_job =
         insert(:job,
