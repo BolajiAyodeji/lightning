@@ -199,12 +199,11 @@ defmodule Lightning.WorkOrders do
   end
 
   defp try_put_snapshot(changeset, attrs) do
-    if snapshot = attrs |> Map.get(:snapshot) do
-      changeset |> put_assoc(:snapshot, snapshot)
-    else
-      snapshot = Snapshot.get_current_for(attrs[:workflow])
-      changeset |> put_assoc(:snapshot, snapshot)
-    end
+    put_assoc(
+      changeset,
+      :snapshot,
+      Map.get(attrs, :snapshot) || Snapshot.get_current_for(attrs[:workflow])
+    )
   end
 
   def build(attrs) do
