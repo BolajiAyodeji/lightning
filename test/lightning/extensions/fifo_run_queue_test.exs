@@ -10,13 +10,12 @@ defmodule Lightning.Extensions.FifoRunQueueTest do
       project2 = insert(:project)
 
       %{triggers: [trigger1]} =
-        workflow1 = insert(:simple_workflow, project: project1)
+        workflow1 =
+        insert(:simple_workflow, project: project1) |> with_snapshot()
 
       %{triggers: [trigger2]} =
-        workflow2 = insert(:simple_workflow, project: project2)
-
-      Lightning.Workflows.Snapshot.create(workflow1)
-      Lightning.Workflows.Snapshot.create(workflow2)
+        workflow2 =
+        insert(:simple_workflow, project: project2) |> with_snapshot()
 
       {:ok, %{runs: [%{id: run1_id}]}} =
         WorkOrders.create_for(trigger1,

@@ -16,7 +16,6 @@ defmodule Lightning.KafkaTriggers.PipelineTest do
   alias Lightning.KafkaTriggers.Pipeline
   alias Lightning.Repo
   alias Lightning.WorkOrder
-  alias Lightning.Workflows.Snapshot
   alias Lightning.Workflows.Triggers.Events
   alias Lightning.Workflows.Triggers.Events.KafkaTriggerNotificationSent
 
@@ -174,7 +173,7 @@ defmodule Lightning.KafkaTriggers.PipelineTest do
           enabled: true
         )
 
-      Snapshot.create(trigger_1.workflow)
+      with_snapshot(trigger_1.workflow)
 
       trigger_2 =
         insert(
@@ -184,7 +183,7 @@ defmodule Lightning.KafkaTriggers.PipelineTest do
           enabled: true
         )
 
-      Snapshot.create(trigger_1.workflow)
+      with_snapshot(trigger_2.workflow)
 
       context = %{trigger_id: trigger_1.id |> String.to_atom()}
 

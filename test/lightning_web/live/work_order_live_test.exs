@@ -2418,7 +2418,7 @@ defmodule LightningWeb.WorkOrderLiveTest do
   describe "bulk rerun from job" do
     setup %{project: project} do
       %{project: project, triggers: [trigger], jobs: jobs} =
-        workflow = insert(:complex_workflow, project: project)
+        workflow = insert(:complex_workflow, project: project) |> with_snapshot()
 
       dataclip = insert(:dataclip, project: project)
 
@@ -2473,8 +2473,6 @@ defmodule LightningWeb.WorkOrderLiveTest do
               )
             end)
         )
-
-      Lightning.Workflows.Snapshot.create(workflow)
 
       %{
         work_order_1: work_order_1,

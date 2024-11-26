@@ -6,7 +6,6 @@ defmodule Lightning.Workflows.SchedulerTest do
   alias Lightning.Repo
   alias Lightning.Run
   alias Lightning.Workflows.Scheduler
-  alias Lightning.Workflows.Snapshot
 
   describe "enqueue_cronjobs/1" do
     test "enqueues a cron job that's never been run before" do
@@ -25,7 +24,7 @@ defmodule Lightning.Workflows.SchedulerTest do
         target_job: job
       })
 
-      Snapshot.create(job.workflow)
+      with_snapshot(job.workflow)
 
       Mox.expect(
         Lightning.Extensions.MockUsageLimiter,
@@ -67,7 +66,7 @@ defmodule Lightning.Workflows.SchedulerTest do
 
       dataclip = insert(:dataclip)
 
-      Snapshot.create(job.workflow)
+      with_snapshot(job.workflow)
 
       run =
         insert(:run,

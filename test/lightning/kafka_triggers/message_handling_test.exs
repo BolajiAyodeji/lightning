@@ -30,7 +30,7 @@ defmodule Lightning.KafkaTriggers.MessageHandlingTest do
 
       %{workflow: workflow} = trigger = insert(:trigger, type: :kafka)
 
-      Lightning.Workflows.Snapshot.create(workflow)
+      workflow |> with_snapshot()
 
       record_changeset =
         TriggerKafkaMessageRecord.changeset(

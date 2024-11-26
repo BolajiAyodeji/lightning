@@ -9,15 +9,11 @@ defmodule Lightning.KafkaTriggers.MessageRecoveryTest do
   alias Lightning.KafkaTriggers.TriggerKafkaMessageRecord
   alias Lightning.Repo
   alias Lightning.WorkOrder
-  alias Lightning.Workflows.Snapshot
 
   describe ".recover_messages" do
     setup %{tmp_dir: tmp_dir} do
-      workflow_1 = insert(:workflow)
-      workflow_2 = insert(:workflow)
-
-      Snapshot.create(workflow_1)
-      Snapshot.create(workflow_2)
+      workflow_1 = insert(:workflow) |> with_snapshot()
+      workflow_2 = insert(:workflow) |> with_snapshot()
 
       kafka_configuration = build(:triggers_kafka_configuration)
 

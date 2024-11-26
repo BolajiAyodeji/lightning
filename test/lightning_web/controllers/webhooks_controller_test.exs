@@ -11,7 +11,6 @@ defmodule LightningWeb.WebhooksControllerTest do
   alias Lightning.Repo
   alias Lightning.Runs
   alias Lightning.WorkOrders
-  alias Lightning.Workflows.Snapshot
 
   require Record
   @fields Record.extract(:span, from: "deps/opentelemetry/include/otel_span.hrl")
@@ -24,10 +23,9 @@ defmodule LightningWeb.WebhooksControllerTest do
       Mox.stub(MockUsageLimiter, :limit_action, &StubUsageLimiter.limit_action/2)
 
       %{triggers: [trigger]} =
-        workflow =
-        insert(:simple_workflow) |> Lightning.Repo.preload(:triggers)
-
-      Snapshot.create(workflow)
+        insert(:simple_workflow)
+        |> Lightning.Repo.preload(:triggers)
+        |> with_snapshot()
 
       conn = post(conn, "/i/#{trigger.id}")
 
@@ -58,10 +56,9 @@ defmodule LightningWeb.WebhooksControllerTest do
 
     test "returns 413 with a body exceeding the limit", %{conn: conn} do
       %{triggers: [trigger]} =
-        workflow =
-        insert(:simple_workflow) |> Repo.preload(:triggers)
-
-      Snapshot.create(workflow)
+        insert(:simple_workflow)
+        |> Repo.preload(:triggers)
+        |> with_snapshot()
 
       Application.put_env(:lightning, :max_dataclip_size_bytes, 1_000_000)
 
@@ -112,10 +109,9 @@ defmodule LightningWeb.WebhooksControllerTest do
 
     test "creates a pending workorder with a valid trigger", %{conn: conn} do
       %{triggers: [%{id: trigger_id}]} =
-        workflow =
-        insert(:simple_workflow) |> Lightning.Repo.preload(:triggers)
-
-      Snapshot.create(workflow)
+        insert(:simple_workflow)
+        |> Lightning.Repo.preload(:triggers)
+        |> with_snapshot()
 
       message = %{"foo" => "bar"}
       conn = post(conn, "/i/#{trigger_id}", message)
@@ -141,10 +137,9 @@ defmodule LightningWeb.WebhooksControllerTest do
     test "creates a pending workorder with a valid trigger and an additional path",
          %{conn: conn} do
       %{triggers: [%{id: trigger_id}]} =
-        workflow =
-        insert(:simple_workflow) |> Lightning.Repo.preload(:triggers)
-
-      Snapshot.create(workflow)
+        insert(:simple_workflow)
+        |> Lightning.Repo.preload(:triggers)
+        |> with_snapshot()
 
       message = %{"foo" => "bar"}
       conn = post(conn, "/i/#{trigger_id}/Patient", message)
@@ -170,10 +165,9 @@ defmodule LightningWeb.WebhooksControllerTest do
     test "creates a pending workorder with a valid trigger and some query params",
          %{conn: conn} do
       %{triggers: [%{id: trigger_id}]} =
-        workflow =
-        insert(:simple_workflow) |> Lightning.Repo.preload(:triggers)
-
-      Snapshot.create(workflow)
+        insert(:simple_workflow)
+        |> Lightning.Repo.preload(:triggers)
+        |> with_snapshot()
 
       message = %{"foo" => "bar"}
       conn = post(conn, "/i/#{trigger_id}?extra=stuff&moar=things", message)

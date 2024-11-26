@@ -44,10 +44,7 @@ defmodule LightningWeb.WorkerChannelTest do
 
     test "returns runs", %{socket: socket} do
       %{triggers: [trigger]} =
-        workflow =
-        insert(:simple_workflow)
-
-      Lightning.Workflows.Snapshot.create(workflow)
+        workflow = insert(:simple_workflow) |> with_snapshot()
 
       Lightning.Stub.reset_time()
 
