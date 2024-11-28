@@ -343,4 +343,37 @@ defmodule Lightning.GithubHelpers do
       end
     )
   end
+
+  def expect_create_workflow_dispatch_for_user(
+        repo,
+        workflow_path,
+        %{email: user_email} = _user,
+        opts \\ []
+      ) do
+    resp_status = Keyword.get(opts, :resp_status, 204)
+    resp_body = Keyword.get(opts, :resp_body, "")
+
+    expected_message = "user #{user_email} initiated a sync from Lightning"
+
+    Mox.expect(
+      Lightning.Tesla.Mock,
+      :call,
+      fn %{
+           url:
+             "https://api.github.com/repos/" <>
+               ^repo <> "/actions/workflows/" <> ^workflow_path <> "/dispatches",
+           body: body
+         },
+         _opts ->
+        %{inputs: %{commitMessage: commit_message}} =
+          Jason.decode!(body, keys: :atoms)
+
+        if commit_message == expected_message do
+          {:ok, %Tesla.Env{status: resp_status, body: resp_body}}
+        else
+          raise "user email address #{user_email} not found in commit message"
+        end
+      end
+    )
+  end
 end

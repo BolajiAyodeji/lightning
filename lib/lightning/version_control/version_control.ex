@@ -135,9 +135,9 @@ defmodule Lightning.VersionControl do
 
   @spec initiate_sync(
           repo_connection :: ProjectRepoConnection.t(),
-          user_email :: String.t()
+          user_email :: User.t()
         ) :: :ok | {:error, UsageLimiting.message() | map()}
-  def initiate_sync(repo_connection, user_email) do
+  def initiate_sync(repo_connection, user) do
     with :ok <-
            VersionControlUsageLimiter.limit_github_sync(
              repo_connection.project_id
@@ -164,7 +164,7 @@ defmodule Lightning.VersionControl do
                    pathToConfig: config_target_path(repo_connection),
                    branch: repo_connection.branch,
                    commitMessage:
-                     "user #{user_email} initiated a sync from Lightning"
+                     "user #{user.email} initiated a sync from Lightning"
                  }
                  |> maybe_add_snapshots(snapshots)
              }
@@ -704,7 +704,7 @@ defmodule Lightning.VersionControl do
            push_files_to_selected_branch(tesla_client, repo_connection),
          {:ok, _} <- configure_api_secret(tesla_client, repo_connection) do
       if repo_connection.sync_direction == :pull do
-        initiate_sync(repo_connection, user.email)
+        initiate_sync(repo_connection, user)
       else
         :ok
       end

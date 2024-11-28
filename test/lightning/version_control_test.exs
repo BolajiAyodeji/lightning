@@ -356,7 +356,7 @@ defmodule Lightning.VersionControlTest do
                changes: %{
                  before: %{
                    "repo" => ^repo,
-                   "branch" => ^branch,
+                   "branch" => ^branch
                  }
                }
              } = audit
@@ -580,9 +580,14 @@ defmodule Lightning.VersionControlTest do
 
       expect_create_installation_token(repo_connection.github_installation_id)
       expect_get_repo(repo_connection.repo)
-      expect_create_workflow_dispatch(repo_connection.repo, "openfn-pull.yml")
 
-      assert :ok = VersionControl.initiate_sync(repo_connection, user.email)
+      expect_create_workflow_dispatch_for_user(
+        repo_connection.repo,
+        "openfn-pull.yml",
+        user
+      )
+
+      assert :ok = VersionControl.initiate_sync(repo_connection, user)
       assert Snapshot.get_current_for(workflow)
     end
 
@@ -595,7 +600,7 @@ defmodule Lightning.VersionControlTest do
       expect_get_repo(repo_connection.repo)
       expect_create_workflow_dispatch(repo_connection.repo, "openfn-pull.yml")
 
-      assert :ok = VersionControl.initiate_sync(repo_connection, user.email)
+      assert :ok = VersionControl.initiate_sync(repo_connection, user)
 
       %{id: snapshot_id} = Snapshot.get_current_for(workflow)
 

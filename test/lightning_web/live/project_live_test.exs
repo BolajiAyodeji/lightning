@@ -4774,7 +4774,12 @@ defmodule LightningWeb.ProjectLiveTest do
         # try clicking the button
         expect_create_installation_token(repo_connection.github_installation_id)
         expect_get_repo(repo_connection.repo)
-        expect_create_workflow_dispatch(repo_connection.repo, "openfn-pull.yml")
+
+        expect_create_workflow_dispatch_for_user(
+          repo_connection.repo,
+          "openfn-pull.yml",
+          user
+        )
 
         render_click(button)
 
