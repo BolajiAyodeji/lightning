@@ -278,6 +278,47 @@ defmodule Lightning.Projects.ProvisionerTest do
                }
              } = audit
     end
+
+    test "audits the creation of workflows" do
+      %{id: user_id} = user = insert(:user)
+
+      %{
+        body: body,
+        workflows: [
+          %{id: first_workflow_id},
+          %{id: second_workflow_id},
+          %{id: third_workflow_id}
+        ]
+      } = valid_document(nil, 3)
+
+      expected_workflow_ids =
+        [
+          first_workflow_id,
+          second_workflow_id,
+          third_workflow_id
+        ]
+        |> Enum.sort()
+
+      Mox.stub(
+        Lightning.Extensions.MockUsageLimiter,
+        :limit_action,
+        fn _action, _context -> :ok end
+      )
+
+      Provisioner.import_document(%Lightning.Projects.Project{}, user, body)
+
+      query =
+        from a in Audit,
+        where: a.event == "created_by_provisioner" and a.actor_id == ^user_id
+
+      workflow_ids =
+        query
+        |> Repo.all()
+        |> Enum.map(& &1.item_id)
+        |> Enum.sort()
+
+      assert workflow_ids == expected_workflow_ids
+    end
   end
 
   describe "import_document/2 with an existing project" do
