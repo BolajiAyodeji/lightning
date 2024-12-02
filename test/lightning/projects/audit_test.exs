@@ -204,7 +204,7 @@ defmodule Lightning.Projects.AuditTest do
         branch: branch,
         config_path: config_path,
         project_id: project_id,
-        repo: repo,
+        repo: repo
       } =
         repo_connection =
         insert(:project_repo_connection, config_path: "config_path")
@@ -231,7 +231,7 @@ defmodule Lightning.Projects.AuditTest do
                before: %{
                  branch: branch,
                  config_path: config_path,
-                 repo: repo,
+                 repo: repo
                }
              } == audit_changes
     end
@@ -239,7 +239,7 @@ defmodule Lightning.Projects.AuditTest do
     test "excludes the config_path if it is nil" do
       %{
         branch: branch,
-        repo: repo,
+        repo: repo
       } =
         repo_connection =
         insert(:project_repo_connection, config_path: nil)
@@ -261,7 +261,7 @@ defmodule Lightning.Projects.AuditTest do
       assert %{
                before: %{
                  branch: branch,
-                 repo: repo,
+                 repo: repo
                }
              } == audit_changes
     end

@@ -87,7 +87,7 @@ defmodule Lightning.Projects.Audit do
     connection_properties =
       %{
         branch: branch,
-        repo: repo,
+        repo: repo
       }
       |> Map.merge(
         case config_path do
