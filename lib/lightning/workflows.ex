@@ -314,7 +314,7 @@ defmodule Lightning.Workflows do
       %Ecto.Changeset{data: %Workflow{}}
 
   """
-  def mark_for_deletion(workflow, _attrs \\ %{}) do
+  def mark_for_deletion(workflow, actor, _attrs \\ %{}) do
     workflow_triggers_query =
       from(t in Lightning.Workflows.Trigger,
         where: t.workflow_id == ^workflow.id
@@ -327,6 +327,7 @@ defmodule Lightning.Workflows do
         "deleted_at" => DateTime.utc_now()
       })
     )
+    |> Multi.insert(:audit, Audit.marked_for_deletion(workflow.id, actor))
     |> Multi.update_all(
       :disable_triggers,
       workflow_triggers_query,

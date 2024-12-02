@@ -731,9 +731,17 @@ defmodule Lightning.WorkflowsTest do
     test "mark_for_deletion/3 creates an audit event", %{
       w1: %{id: workflow_id} = workflow
     } do
-      assert {:ok, _workflow} = Workflows.mark_for_deletion(w1)
+      %{id: user_id} = user = insert(:user)
 
+      assert {:ok, _workflow} = Workflows.mark_for_deletion(workflow, user)
 
+      audit = Repo.one!(Audit)
+
+      assert %{
+        event: "marked_for_deletion",
+        item_id: ^workflow_id,
+        actor_id: ^user_id,
+      } = audit
     end
 
     test "mark_for_deletion/3 publishes events for Kafka triggers", %{w1: w1} do
